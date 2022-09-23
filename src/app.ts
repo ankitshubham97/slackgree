@@ -2,6 +2,7 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import helmet from 'helmet';
+import path from 'path';
 
 import Controller from './interfaces/controller.interface';
 import errorMiddleware from './middleware/error.middleware';
@@ -40,6 +41,7 @@ class App {
         contentSecurityPolicy: false,
       })
     );
+    this.app.use('/files', express.static(path.join(__dirname, 'files')))
   }
 
   private initializeControllers(controllers: readonly Controller[]) {
