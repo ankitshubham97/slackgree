@@ -5,6 +5,7 @@ import { writeFile } from 'fs/promises';
 import path from 'path';
 import formidable from 'formidable';
 import { updateResponseLayout } from '../layouts/updateResponse.layout';
+import * as HelloSignSDK from "hellosign-sdk";
 
 import Controller from '../interfaces/controller.interface';
 
@@ -16,6 +17,7 @@ class EventController implements Controller {
   public HELLOSIGN_API_KEY = process.env.HELLOSIGN_API_KEY ?? '';
   public BOT_USER_OAUTH_TOKEN = process.env.BOT_USER_OAUTH_TOKEN ?? '';
   public slackService = new SlackService();
+  public hellosignApi = new HelloSignSDK.SignatureRequestApi();
   public HELLOSIGN_EVENTS = [
     'signature_request_sent',
     'signature_request_viewed',
@@ -27,15 +29,32 @@ class EventController implements Controller {
     'signature_request_invalid',
   ];
 
-  public EVENTS_TEXT_MAPPING : { [key: string]: string } = {
-    'signature_request_sent': 'You have sent a signature request',
-    'signature_request_viewed': 'The signature request is viewed by the signer',
-    'signature_request_signed':  'Yay! The signature request is viewed by the signer',
-    'signature_request_downloadable': 'The signed signature request copy is now downloadable',
-    'signature_request_declined': 'Oops! The signature request is declined by the signer',
-    'signature_request_remind': 'Ay-ay! The signer is reminded of the signature request',
-    'signature_request_email_bounce': 'Oops! The signer email seems incorrect; it has bounced',
-    'signature_request_invalid': 'Oops! The signature request is invalid',
+  public getText = function ({eventType, signatureRequestId, signerEmail}: {eventType: string, signatureRequestId:string, signerEmail:string}) : string {
+    if (eventType === 'signature_request_sent') {
+      return `You have sent a signature request with signature_request_id ${signatureRequestId} to email ${signerEmail}`;
+    }
+    if (eventType === 'signature_request_viewed') {
+      return `The signature request is viewed by the signer ${signerEmail}`;
+    }
+    if (eventType === 'signature_request_signed') {
+      return `Yay! The signature request is viewed by the signer ${signerEmail}`;
+    }
+    if (eventType === 'signature_request_downloadable') {
+      return `The signed signature request copy is now downloadable`;
+    }
+    if (eventType === 'signature_request_declined') {
+      return `Oops! The signature request is declined by the signer ${signerEmail}`;
+    }
+    if (eventType === 'signature_request_remind') {
+      return `Ay-ay! The signer ${signerEmail} is reminded of the signature request`;
+    }
+    if (eventType === 'signature_request_email_bounce') {
+      return `Oops! The signer email ${signerEmail} seems incorrect; it has bounced`;
+    }
+    if (eventType === 'signature_request_invalid') {
+      return `Oops! The signature request is invalid`;
+    }
+    return `Oops! Something went wrong!`;
   };
   
   public getHeading = function ({eventType, signatureRequestId}: {eventType: string, signatureRequestId:string}) : string {
@@ -68,6 +87,7 @@ class EventController implements Controller {
 
   constructor() {
     this.initializeRoutes();
+    this.hellosignApi.username = this.HELLOSIGN_API_KEY;
   }
 
   private initializeRoutes() {
@@ -97,7 +117,7 @@ class EventController implements Controller {
         await this.slackService.postMessage({
           sink: channelId,
           thread_ts: ts,
-          text: this.EVENTS_TEXT_MAPPING[eventType],
+          text: this.getText({eventType, signatureRequestId, signerEmail}),
           blocks: JSON.stringify(
             updateResponseLayout({
               heading: this.getHeading({eventType, signatureRequestId}),
@@ -126,10 +146,35 @@ class EventController implements Controller {
     } else if (request.body.type === 'event_callback') {
       const event = request.body.event;
       const {user, type} = event;
-      if (event.type === 'message' && event.subtype === 'subtype') {
+      if (event.type === 'message' && String(event.text).toLowerCase().trim() === 'remind') {
         const fileId = event.files?.[0]?.id ?? '' as string;
         const channelId = event.channel ?? '' as string;
         const ts = event.ts ?? '' as string;
+        const threadTs = event.thread_ts ?? '' as string;
+
+        // Get the latest message containing signature request id from the thread:
+        const resp = await axios({
+          method: 'get',
+          url: `https://slack.com/api/conversations.replies?channel=${channelId}&ts=${threadTs}`,
+          headers: {
+            'Authorization': `Bearer ${this.BOT_USER_OAUTH_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+        });
+        if (resp && resp.status === 200 && resp.data.ok) {
+          const lastMessage = (resp.data.messages as any[]).filter(m => String(m.text).includes('with signature_request_id')).reduce((max, curren) => Number(max.ts) > Number(curren.ts) ? max : curren);
+          logger.info(`last Message ${prettyJSON(lastMessage)}`);
+          const signatureRequestId = String(lastMessage?.text).split('with signature_request_id')[1].trim();
+          const signerEmail = String(lastMessage?.text).split('to email')[1].trim();
+
+          // Send reminder
+          await this.hellosignApi.signatureRequestRemind(
+            signatureRequestId,
+            {
+              emailAddress: signerEmail
+            }
+          );
+        }
         
       }
       response.send();
