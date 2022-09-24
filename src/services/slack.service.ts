@@ -1,5 +1,6 @@
 import axios from "axios";
 import { collectDetailsModalLayout } from '../layouts/collectDetailsModal.layout';
+import { homeLayout } from '../layouts/home.layout';
 import logger, { prettyJSON } from "../utils/logger";
 
 class SlackService {
@@ -11,6 +12,22 @@ class SlackService {
       {
         trigger_id: triggerId,
         view: collectDetailsModalLayout({channelId, fileId, ts}),
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${this.BOT_USER_OAUTH_TOKEN}`,
+        }
+      }
+    );
+    return;
+  }
+
+  public async publishHomeTab({userId}:{userId: string}): Promise<void> {
+    const response = await axios.post(
+      `https://slack.com/api/views.publish`,
+      {
+        user_id: userId,
+        view: homeLayout(),
       },
       {
         headers: {

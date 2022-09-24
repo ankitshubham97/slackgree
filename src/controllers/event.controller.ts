@@ -146,7 +146,11 @@ class EventController implements Controller {
     } else if (request.body.type === 'event_callback') {
       const event = request.body.event;
       const {user, type} = event;
-      if (event.type === 'message' && String(event.text).toLowerCase().trim() === 'remind') {
+      if (type === 'app_home_opened') {
+        await this.slackService.publishHomeTab({
+          userId: user
+        });
+      } else if (event.type === 'message' && String(event.text).toLowerCase().trim() === 'remind') {
         const fileId = event.files?.[0]?.id ?? '' as string;
         const channelId = event.channel ?? '' as string;
         const ts = event.ts ?? '' as string;
