@@ -153,7 +153,13 @@ class InteractionController implements Controller {
           },
           testMode: true
         }
-        await this.hellosignApi.signatureRequestSend(data);
+        const signatureRequestSendResp = await this.hellosignApi.signatureRequestSend(data);
+        if (signatureRequestSendResp && signatureRequestSendResp.response) {
+          fs.rm(
+            path.join(__dirname, `../files/${fileName}`),
+            () => {}
+          );
+        }
       }
       return {success: true, errorMap: {}};
     } catch (e) {
