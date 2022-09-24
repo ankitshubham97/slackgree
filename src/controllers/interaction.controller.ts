@@ -124,43 +124,6 @@ class InteractionController implements Controller {
           .data
           .pipe(fs.createWriteStream(path.join(__dirname, `../files/${fileName}`)));
         
-        // const res2 = await axios({
-        //   method: 'post',
-        //   url: 'https://api.hellosign.com/v3/signature_request/send',
-        //   headers: {
-        //     'Authorization': 'Basic '+ Buffer.from(`${this.HELLOSIGN_API_KEY}:`).toString('base64'),
-        //     'Content-Type': 'application/json', 
-        //   },
-        //   data: JSON.stringify({
-        //     title,
-        //     subject,
-        //     message,
-        //     signers: [
-        //       {
-        //         email_address: signerEmail,
-        //         name: signerName,
-        //         order: 0
-        //       }
-        //     ],
-        //     cc_email_addresses: [],
-        //     file_url: [
-        //       `${this.SELF_URL}/files/${fileName}`
-        //     ],
-        //     metadata: {
-        //       channelId,
-        //       fileId,
-        //       ts
-        //     },
-        //     signing_options: {
-        //       draw: true,
-        //       type: true,
-        //       upload: true,
-        //       phone: true,
-        //       default_type: "draw"
-        //     },
-        //     test_mode: true
-        //   })
-        // });
         const data: HelloSignSDK.SignatureRequestSendRequest = {
           title,
           subject,
