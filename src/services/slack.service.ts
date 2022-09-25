@@ -38,7 +38,7 @@ class SlackService {
     return;
   }
 
-  public async postMessage ({sink, thread_ts, text='You have a new message!', blocks, metadata}:{sink: string, thread_ts?: string, text?: string, blocks: string, metadata?: string}): Promise<void> {
+  public async postMessage ({sink, thread_ts, text='You have a new message!', blocks, metadata}:{sink: string, thread_ts?: string, text?: string, blocks?: string, metadata?: string}): Promise<void> {
     const body = {
       channel: sink,
       text,

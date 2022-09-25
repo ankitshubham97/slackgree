@@ -27,7 +27,9 @@ class EventController implements Controller {
     'signature_request_remind',
     'signature_request_email_bounce',
     'signature_request_invalid',
+    'signature_request_canceled'
   ];
+  public USER_COMMANDS = ['remind', 'cancel'];
 
   public getText = function ({eventType, signatureRequestId, signerEmail}: {eventType: string, signatureRequestId:string, signerEmail:string}) : string {
     if (eventType === 'signature_request_sent') {
@@ -53,6 +55,9 @@ class EventController implements Controller {
     }
     if (eventType === 'signature_request_invalid') {
       return `Oops! The signature request is invalid`;
+    }
+    if (eventType === 'signature_request_canceled') {
+      return `You have canceled the signature request with signature_request_id ${signatureRequestId}`
     }
     return `Oops! Something went wrong!`;
   };
@@ -81,6 +86,9 @@ class EventController implements Controller {
     }
     if (eventType === 'signature_request_invalid') {
       return `The *<https://app.hellosign.com/editor/view/super_group_guid/${signatureRequestId}|signature request>* is invalid`
+    }
+    if (eventType === 'signature_request_canceled') {
+      return `The *<https://app.hellosign.com/editor/view/super_group_guid/${signatureRequestId}|signature request>* is canceled`
     }
     return `Unknown event caught: ${eventType}`;
   };
@@ -150,36 +158,57 @@ class EventController implements Controller {
         await this.slackService.publishHomeTab({
           userId: user
         });
-      } else if (event.type === 'message' && String(event.text).toLowerCase().trim() === 'remind') {
+      } else if (event.type === 'message') {
         const fileId = event.files?.[0]?.id ?? '' as string;
         const channelId = event.channel ?? '' as string;
         const ts = event.ts ?? '' as string;
         const threadTs = event.thread_ts ?? '' as string;
+        if (this.USER_COMMANDS.includes(String(event.text).toLowerCase().trim())) {
+          // Get the latest message containing signature request id from the thread:
+          const resp = await axios({
+            method: 'get',
+            url: `https://slack.com/api/conversations.replies?channel=${channelId}&ts=${threadTs}`,
+            headers: {
+              'Authorization': `Bearer ${this.BOT_USER_OAUTH_TOKEN}`,
+              'Content-Type': 'application/json'
+            },
+          });
+          if (resp && resp.status === 200 && resp.data.ok) {
+            const lastMessage = (resp.data.messages as any[]).filter(m => String(m.text).includes('You have sent a signature request with signature_request_id')).reduce((max, curren) => Number(max.ts) > Number(curren.ts) ? max : curren);
+            logger.info(`last Message ${prettyJSON(lastMessage)}`);
+            const signatureRequestId = String(lastMessage?.text).split('You have sent a signature request with signature_request_id')[1].trim().split(/\s+/)[0];
+            const signerEmail = String(lastMessage?.text).split('to email')[1].trim().split('mailto:')[1].split('|')[0];
+            logger.info(`signatureRequestId ${signatureRequestId} signerEmail ${signerEmail} threadTs ${threadTs} channel ${channelId}`)
 
-        // Get the latest message containing signature request id from the thread:
-        const resp = await axios({
-          method: 'get',
-          url: `https://slack.com/api/conversations.replies?channel=${channelId}&ts=${threadTs}`,
-          headers: {
-            'Authorization': `Bearer ${this.BOT_USER_OAUTH_TOKEN}`,
-            'Content-Type': 'application/json'
-          },
-        });
-        if (resp && resp.status === 200 && resp.data.ok) {
-          const lastMessage = (resp.data.messages as any[]).filter(m => String(m.text).includes('with signature_request_id')).reduce((max, curren) => Number(max.ts) > Number(curren.ts) ? max : curren);
-          logger.info(`last Message ${prettyJSON(lastMessage)}`);
-          const signatureRequestId = String(lastMessage?.text).split('with signature_request_id')[1].trim();
-          const signerEmail = String(lastMessage?.text).split('to email')[1].trim();
-
-          // Send reminder
-          await this.hellosignApi.signatureRequestRemind(
-            signatureRequestId,
-            {
-              emailAddress: signerEmail
+            if (String(event.text).toLowerCase().trim() === 'cancel') {
+              // Cancel
+              const resp = await this.hellosignApi.signatureRequestCancel (signatureRequestId);
+              let msg = `Error while canceling request with request id ${signatureRequestId}`;
+              if (resp.response.status === 200) {
+                msg = `Canceled request id ${signatureRequestId}!`;
+              }
+              await this.slackService.postMessage({
+                sink: channelId,
+                thread_ts: threadTs,
+                text: msg,
+              });
+              logger.info(`msg ${msg}`);
+            } else if (String(event.text).toLowerCase().trim() === 'remind') {
+              // Send reminder
+              const resp = await this.hellosignApi.signatureRequestRemind(signatureRequestId, { emailAddress: signerEmail});
+              let msg = `Error while sending reminder to ${signerEmail} for request id ${signatureRequestId}`;
+              if (resp.response.status === 200) {
+                msg = `Reminder sent to ${signerEmail} for request id ${signatureRequestId}!`;
+              }
+              await this.slackService.postMessage({
+                sink: channelId,
+                thread_ts: threadTs,
+                text: msg,
+              });
+              logger.info(`msg ${msg}`);
             }
-          );
-        }
-        
+          }
+        }  
       }
       response.send();
     }
