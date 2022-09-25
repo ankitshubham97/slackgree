@@ -22,6 +22,21 @@ class SlackService {
     return;
   }
 
+  public async getEmailFromSlackId(slackId: string): Promise<string | null> {
+    const config = {
+      method: 'get',
+      url: `https://slack.com/api/users.profile.get?user=${slackId}`,
+      headers: { 
+        'Authorization': `Bearer ${this.BOT_USER_OAUTH_TOKEN}`,
+      }
+    };
+    const response = await axios(config);
+    if (!(response.status === 200 && response.data?.ok && response.data?.profile?.email)) {
+      return null;
+    }
+    return response.data.profile.email;
+  }
+
   public async publishHomeTab({userId}:{userId: string}): Promise<void> {
     const response = await axios.post(
       `https://slack.com/api/views.publish`,

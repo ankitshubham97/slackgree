@@ -97,6 +97,14 @@ class InteractionController implements Controller {
         const signerEmail = (values["signerEmail"]["signerEmail"]["value"] as string).trim();
         // Get ccSlackIds.
         const ccSlackIds = values["ccSlackIds"]["ccSlackIds"]["selected_users"] as string[];
+        const ccEmailAddresses = [] as string[];
+        ccSlackIds.forEach(async id => {
+          const email = await this.slackService.getEmailFromSlackId(id);
+          if (email) {
+            ccEmailAddresses.push(email);
+          }
+        });
+        logger.info(`ccEmailAddresses ${prettyJSON(ccEmailAddresses)}`);
         
         // Get file.     
         const fileResponse = await axios({
@@ -135,7 +143,7 @@ class InteractionController implements Controller {
               order: 0
             }
           ],
-          ccEmailAddresses: [],
+          ccEmailAddresses,
           fileUrl: [
             `${this.SELF_URL}/files/${fileName}`
           ],
