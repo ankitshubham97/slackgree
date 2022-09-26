@@ -1,8 +1,6 @@
-import axios, { ResponseType } from 'axios';
-import express, { response } from 'express';
-import * as fs from "fs";
-import { writeFile } from 'fs/promises';
-import path from 'path';
+import axios from 'axios';
+import express from 'express';
+
 import formidable from 'formidable';
 import { updateResponseLayout } from '../layouts/updateResponse.layout';
 import * as HelloSignSDK from "hellosign-sdk";

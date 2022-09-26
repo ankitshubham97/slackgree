@@ -1,7 +1,4 @@
 import winston, { format } from 'winston';
-import SlackHook from 'winston-slack-webhook-transport';
-
-import { PROD } from '../constants';
 
 export const prettyJSON = (data: unknown) => JSON.stringify(data, null, 2);
 
@@ -23,19 +20,7 @@ const options = {
 
 // Don't enable slack in testing
 const transports: winston.transport[] = [];
-// if (process.env['NODE_ENV'] === PROD) {
-//   transports.push(
-//     new SlackHook({
-//       webhookUrl: process.env.SLACK_WEBHOOK_URL ?? '',
-//       level: 'error',
-//       formatter: (info) => {
-//         return {
-//           text: `${info.timestamp} ${info.level}: ${info.message}`,
-//         };
-//       },
-//     })
-//   );
-// }
+
 
 const logger = winston.createLogger({
   level: 'info',
