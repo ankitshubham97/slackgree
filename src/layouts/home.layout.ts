@@ -36,7 +36,7 @@ export const homeLayout = () => {
         "type": "section",
         "text": {
           "type": "mrkdwn",
-          "text": "2️⃣ *Get live updates for document*\n\n1. You would get the updates in the form of a thread where the initial message is the document that you uploaded in the chat.\n2. You would get updates on:\n  a. when the request was sent,\n  b. when the request was viewed,\n  c. when the request was signed,\n  b. when the signed request is available for download and the download link,\n  b. when the request was declined,\n  b. when the request bounced,\n  b. when the request was invalid,"
+          "text": "2️⃣ *Get live updates for document*\n\n1. You would get the updates in the form of a thread where the initial message is the document that you uploaded in the chat.\n2. You would get updates on:\n  a. when the request was sent,\n  b. when the request was viewed,\n  c. when the request was signed,\n  d. when the signed request is available for download and the download link,\n  e. when the request was declined,\n  f. when the request bounced,\n  g. when the request was invalid,\n h. when the request was canceled by the requester."
         }
       },
       {
