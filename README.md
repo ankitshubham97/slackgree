@@ -88,4 +88,4 @@ You should be able to locate the `Slackgree-Bot` app in the left pane. If not, p
 Please follow the demo or the steps listed in `Product walkthrough: End user` section in this readme to learn how to interact.
 
 [Hellosign Hackathon]: <https://hellosignhackathon2022.devpost.com/>
-[Demo Video]: <>
+[Demo Video]: <https://youtu.be/KsMYv6uA-rc>
