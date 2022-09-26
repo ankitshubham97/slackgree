@@ -105,6 +105,8 @@ class EventController implements Controller {
     request: express.Request,
     response: express.Response
   ) => {
+    response.set('content-Type', 'text/plain');
+    response.status(200).send('Hello API Event Received');
     const form = formidable({});
 
     form.parse(request, async (err: { httpCode: any; }, fields: any, files: any) => {
@@ -137,8 +139,6 @@ class EventController implements Controller {
         logger.error(`Unhandled eventType ${eventType}`);
       }
     });
-    response.set('content-Type', 'text/plain');
-    response.status(200).send('Hello API Event Received');
   };
 
   private processSlackEvent = async (
