@@ -51,6 +51,16 @@ export const homeLayout = () => {
       },
       {
         "type": "divider"
+      },
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "4️⃣ *Cancel request for the already-out document*\n\n1. Go to the thread which corresponds to the already-out document.\n2. Type _cancel_."
+        }
+      },
+      {
+        "type": "divider"
       }
     ]
   }
